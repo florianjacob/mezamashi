@@ -1,5 +1,5 @@
 # mezamashi - めざまし #
-## A Terminal Alarm Clock written in python ##
+## A Terminal Alarm Clock written in Python ##
 
 Regular alarm clocks have the disadvantage of not turning off your computer when it's time to sleep, they just beep
 when it's time to get up.
@@ -72,11 +72,11 @@ the text of which can be found in LICENSE, or any later version of the GPL,
 unless otherwise noted.
 
 Licensing of used libraries:
-	* python: PSFL
-	* scriptine: MIT ( http://pythonhosted.org/scriptine/intro.html )
+ * python: PSFL
+ * [scriptine](http://pythonhosted.org/scriptine/intro.html): MIT 
 
 ## Attribution ##
-mezamashi is written by Florian Jacob, ( http://florianjacob.de ).
+mezamashi is written by [Florian Jacob](http://florianjacob.de).
 
 ## Name ##
 mezamashi is the japanese word for alarm clock. 'wecker', the german word, was already taken, so I named it mezamashi
