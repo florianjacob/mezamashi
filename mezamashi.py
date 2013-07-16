@@ -26,11 +26,48 @@ except ImportError:
 	sys.exit(1)
 
 import time
+from ConfigParser import RawConfigParser
 from datetime import datetime, timedelta, date
 import re
 import sys
 
-WAKE_COMMAND = "<your musicplayer with song here>"
+DEFAULT_CONFIG = """
+[mezamashi]
+
+# Uncomment and set this option to your liking! There's obviously no default for this.
+# alarm_shcommand = your-music-player music_file
+# example:
+# alarm_shcommand = PULSE_SINK=alsa_output.pci-0000_00_1b.0.analog-stereo bangarang ~/Music/wakeup.ogg
+
+# if you use pulseaudio, the PULSE_SINK environment variable controls on which output the music will be played.
+# pactl list short sinks
+# lists your available sinks.
+
+# change to e.g. pm-suspend if you're not using systemd
+# sleep_shcommand = systemctl suspend
+
+# if "sudo hwclock --show --localtime" doesn't return your current time, change this to yes
+# hardware_clock_is_utc = no
+""".strip()
+
+CONFIG_PATH = path("~/.config/mezamashi.conf").expand()
+
+if not CONFIG_PATH.exists():
+	CONFIG_PATH.write_text(DEFAULT_CONFIG)
+	print("No config file found at ~/.config/mezamashi.conf . Generated new default config file.")
+
+config = RawConfigParser()
+config.readfp(CONFIG_PATH.open(mode='r'))
+
+if not config.has_option("mezamashi", "alarm_shcommand"):
+	print("Please specify your alarm command in ~/.config/mezamashi.conf")
+	sys.exit(1)
+alarm_shcommand = config.get("mezamashi", "alarm_shcommand")
+
+sleep_shcommand = config.get("mezamashi", "sleep_shcommand") if config.has_option("mezamashi", "sleep_shcommand") else "systemctl suspend"
+hardware_clock_is_utc = config.getboolean("mezamashi", "hardware_clock_is_utc") if config.has_option("mezamashi", "hardware_clock_is_utc") else False
+local_or_utc = '-u' if hardware_clock_is_utc else '-l'
+
 
 absolute_time = re.compile("[0-2]?[0-9]:[0-5][0-9]")
 relative_time = re.compile("[0-9]?[0-9]h([0-5][0-9])?")
@@ -73,36 +110,36 @@ def parsetime(timestr):
 def set_command(alarm_time):
 	"""
 	set the alarm time.
-	:param time: the time to wake up, either absolute as "8:00" or relative as "8h00"
+	:param alarm_time: the time to wake up, either absolute as "8:00" or relative as "8h00"
 	"""
 	alarm_timestamp = parsetime(alarm_time)
 	print(datetime.fromtimestamp(alarm_timestamp))
-	shell.call(['sudo', 'rtcwake', '-l', '-m', 'no', '-t', str(int(alarm_timestamp))])
+	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'no', '-t', str(int(alarm_timestamp))])
 
 def sleep_command(sleep_time):
 	"""
 	set the time to suspend the computer
-	:param sleeptime: the time to sleep, either absolute as "23:00" or relative as "1h00" or "now"
+	:param sleep_time: the time to sleep, either absolute as "23:00" or relative as "1h00" or "now"
 	"""
 	now_timestamp = time.time()
 	sleep_timestamp = parsetime(sleep_time)
 	print(datetime.fromtimestamp(sleep_timestamp))
 	time.sleep(sleep_timestamp - now_timestamp)
-	shell.sh("systemctl suspend")
-	shell.sh(WAKE_COMMAND)
+	shell.sh(sleep_shcommand)
+	shell.sh(alarm_shcommand)
 
 
 def unset_command():
 	"""
 	unset the current alarm
 	"""
-	shell.sh("sudo rtcwake -l -m disable")
+	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'disable'])
 
 def show_command():
 	"""
 	show the current alarm time
 	"""
-	shell.sh("sudo rtcwake -l -m show")
+	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'show'])
 
 if __name__ == '__main__':
     run()
