@@ -1,5 +1,5 @@
 # mezamashi - めざまし #
-## a terminal alarm clock written in python ##
+## A Terminal Alarm Clock written in python ##
 
 Regular alarm clocks have the disadvantage of not turning off your computer when it's time to sleep, they just beep
 when it's time to get up.
