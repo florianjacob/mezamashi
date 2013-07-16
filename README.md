@@ -39,7 +39,7 @@ Example usage:
 >./mezamashi.py unset
 # set a wakeup alarm in 7 hours and a half
 >./mezamashi.py set 7h30
-# go to sleep in 20 minutes. you need to use this command to suspend to run the WAKEUP_COMMAND at next startup.
+# go to sleep in 20 minutes. you need to use this command to suspend to run your alarm_shcommand at next startup.
 >./mezamashi.py sleep 0h20
 # there's an alias if you want to suspend immediatly
 >./mezamashi.py sleep now
@@ -79,5 +79,5 @@ Licensing of used libraries:
 mezamashi is written by [Florian Jacob](http://florianjacob.de).
 
 ## Name ##
-mezamashi is the japanese word for alarm clock. 'wecker', the german word, was already taken, so I named it mezamashi
+mezamashi is the japanese word for alarm clock. 'wecker', the german word, was already taken, so I chose mezamashi
 to make me remember a vocable without doing anything for it. ;)
