@@ -18,18 +18,19 @@
 	Copyright 2013 Florian Jacob
 """
 
-try:
-	from scriptine import run, path, log
-	from scriptine import shell
-except ImportError:
-	print("You need to install python-scriptine to run mezamashi.")
-	sys.exit(1)
 
 import time
 from ConfigParser import RawConfigParser
 from datetime import datetime, timedelta, date
 import re
 import sys
+
+try:
+	from scriptine import run, path, log
+	from scriptine import shell
+except ImportError:
+	print("You need to install python-scriptine to run mezamashi.")
+	sys.exit(1)
 
 DEFAULT_CONFIG = """
 [mezamashi]
