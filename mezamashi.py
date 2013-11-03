@@ -47,8 +47,8 @@ DEFAULT_CONFIG = """
 # change to e.g. pm-suspend if you're not using systemd
 # sleep_shcommand = systemctl suspend
 
-# if "sudo hwclock --show --localtime" doesn't return your current time, change this to yes
-# hardware_clock_is_utc = no
+# if the /sys/class/rtc/rtc0 folder doesn't exist, find out how your rtc (real time clock) is called and enter it here
+# rtc = /sys/class/rtc/rtc0
 """.strip()
 
 CONFIG_PATH = path("~/.config/mezamashi.conf").expand()
@@ -61,13 +61,12 @@ config = RawConfigParser()
 config.readfp(CONFIG_PATH.open(mode='r'))
 
 if not config.has_option("mezamashi", "alarm_shcommand"):
-	print("Please specify your alarm command in ~/.config/mezamashi.conf")
+	print("Please specify your alarm command via the alarm_shcommand variable in ~/.config/mezamashi.conf")
 	sys.exit(1)
 alarm_shcommand = config.get("mezamashi", "alarm_shcommand")
 
 sleep_shcommand = config.get("mezamashi", "sleep_shcommand") if config.has_option("mezamashi", "sleep_shcommand") else "systemctl suspend"
-hardware_clock_is_utc = config.getboolean("mezamashi", "hardware_clock_is_utc") if config.has_option("mezamashi", "hardware_clock_is_utc") else False
-local_or_utc = '-u' if hardware_clock_is_utc else '-l'
+rtc = config.get("mezamashi", "rtc") if config.has_option("mezamashi", "rtc") else "/sys/class/rtc/rtc0"
 
 
 absolute_time = re.compile("[0-2]?[0-9]:[0-5][0-9]")
@@ -103,10 +102,20 @@ def parsetime(timestr):
 			result_datetime += timedelta(days=1, hours=hour, minutes=minute)
 		result_timestamp = time.mktime(result_datetime.timetuple())
 	else:
-		print("{} can't be parsed as relative or absolute time." % timestr)
+		print("{0} can't be parsed as relative or absolute time".format(timestr))
 		sys.exit(1)
 	return result_timestamp
 
+def unset_wakealarm(rtc):
+	set_wakealarm(rtc, 0)
+
+def set_wakealarm(rtc, timestamp):
+	print("Executing: echo {1} | sudo tee {0}/wakealarm > /dev/null".format(rtc, timestamp))
+	shell.sh("echo {1} | sudo tee {0}/wakealarm > /dev/null".format(rtc, timestamp))
+
+def get_wakealarm(rtc):
+	# funktioniert, aber nur wenn der alarm auch gesetzt ist: print('date -d "@$(cat {0}/wakealarm)"'.format(rtc))
+	return shell.backtick("cat {0}/wakealarm".format(rtc))
 
 def set_command(alarm_time):
 	"""
@@ -114,8 +123,11 @@ def set_command(alarm_time):
 	:param alarm_time: the time to wake up, either absolute as "8:00" or relative as "8h00"
 	"""
 	alarm_timestamp = parsetime(alarm_time)
-	print(datetime.fromtimestamp(alarm_timestamp))
-	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'no', '-t', str(int(alarm_timestamp))])
+	if get_wakealarm(rtc).strip() != '':
+		print("Unsetting a previously set alarm..")
+		unset_wakealarm(rtc)
+	print("Setting alarm to: {0}..".format(datetime.fromtimestamp(alarm_timestamp)))
+	set_wakealarm(rtc, str(int(alarm_timestamp)))
 
 def sleep_command(sleep_time):
 	"""
@@ -134,13 +146,17 @@ def unset_command():
 	"""
 	unset the current alarm
 	"""
-	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'disable'])
+	unset_wakealarm(rtc)
 
 def show_command():
 	"""
 	show the current alarm time
 	"""
-	shell.call(['sudo', 'rtcwake', local_or_utc, '-m', 'show'])
+	alarm = get_wakealarm(rtc).strip()
+	if alarm == '':
+		print("alarm is not set")
+	else:
+		print(datetime.fromtimestamp(float(alarm)))
 
 if __name__ == '__main__':
     run()
