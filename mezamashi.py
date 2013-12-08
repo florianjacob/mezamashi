@@ -2,18 +2,18 @@
 # ~*~ coding: utf-8 ~*~
 
 """
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 	Copyright 2013 Florian Jacob
 """
@@ -26,7 +26,7 @@ import re
 import sys
 
 try:
-	from scriptine import run, path, log
+	from scriptine import run, path
 	from scriptine import shell
 except ImportError:
 	print("You need to install python-scriptine to run mezamashi.")
@@ -65,12 +65,14 @@ if not config.has_option("mezamashi", "alarm_shcommand"):
 	sys.exit(1)
 alarm_shcommand = config.get("mezamashi", "alarm_shcommand")
 
-sleep_shcommand = config.get("mezamashi", "sleep_shcommand") if config.has_option("mezamashi", "sleep_shcommand") else "systemctl suspend"
+sleep_shcommand_configured = config.has_option("mezamashi", "sleep_shcommand")
+sleep_shcommand = config.get("mezamashi", "sleep_shcommand") if sleep_shcommand_configured else "systemctl suspend"
 rtc = config.get("mezamashi", "rtc") if config.has_option("mezamashi", "rtc") else "/sys/class/rtc/rtc0"
 
 
 absolute_time = re.compile("[0-2]?[0-9]:[0-5][0-9]")
 relative_time = re.compile("[0-9]?[0-9]h([0-5][0-9])?")
+
 
 def parsetime(timestr):
 	timestr = timestr.strip()
@@ -106,16 +108,20 @@ def parsetime(timestr):
 		sys.exit(1)
 	return result_timestamp
 
+
 def unset_wakealarm(rtc):
 	set_wakealarm(rtc, 0)
+
 
 def set_wakealarm(rtc, timestamp):
 	print("Executing: echo {1} | sudo tee {0}/wakealarm > /dev/null".format(rtc, timestamp))
 	shell.sh("echo {1} | sudo tee {0}/wakealarm > /dev/null".format(rtc, timestamp))
 
+
 def get_wakealarm(rtc):
 	# funktioniert, aber nur wenn der alarm auch gesetzt ist: print('date -d "@$(cat {0}/wakealarm)"'.format(rtc))
 	return shell.backtick("cat {0}/wakealarm".format(rtc))
+
 
 def set_command(alarm_time):
 	"""
@@ -129,6 +135,7 @@ def set_command(alarm_time):
 	print("Setting alarm to: {0}..".format(datetime.fromtimestamp(alarm_timestamp)))
 	set_wakealarm(rtc, str(int(alarm_timestamp)))
 
+
 def sleep_command(sleep_time):
 	"""
 	set the time to suspend the computer
@@ -139,6 +146,8 @@ def sleep_command(sleep_time):
 	print(datetime.fromtimestamp(sleep_timestamp))
 	time.sleep(sleep_timestamp - now_timestamp)
 	shell.sh(sleep_shcommand)
+	# Sleep 10 seconds, needed because systemd doesn't block the shutdown call
+	time.sleep(10)
 	shell.sh(alarm_shcommand)
 
 
@@ -147,6 +156,7 @@ def unset_command():
 	unset the current alarm
 	"""
 	unset_wakealarm(rtc)
+
 
 def show_command():
 	"""
@@ -159,4 +169,4 @@ def show_command():
 		print(datetime.fromtimestamp(float(alarm)))
 
 if __name__ == '__main__':
-    run()
+	run()
